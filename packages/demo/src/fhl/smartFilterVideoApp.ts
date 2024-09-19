@@ -1,32 +1,37 @@
 import type { videoEffects } from "@microsoft/teams-js";
 import { ThinEngine } from "@babylonjs/core/Engines/thinEngine";
 import { Texture } from "@babylonjs/core/Materials/Textures/texture";
-import type { SmartFilterRuntime } from "@babylonjs/smart-filters";
 import type { Nullable } from "@babylonjs/core/types";
 import { ThinTexture } from "@babylonjs/core/Materials/Textures/thinTexture";
 import "@babylonjs/core/Engines/Extensions/engine.dynamicTexture";
 import type { InternalTexture } from "@babylonjs/core/Materials/Textures/internalTexture";
-import { ReactionsSmartFilter } from "./reactionsSmartFilter";
 import type { IEffect } from "./effects/IEffect";
 import { LoveEffect } from "./effects/loveEffect";
+import { LikeEffect } from "./effects/likeEffect";
+import type { Observer } from "@babylonjs/core/Misc/observable";
 
 export const SMART_FILTER_EFFECT_ID = "f71bd30b-c5e9-48ff-b039-42bc19df95a8";
 export const LOCAL_SMART_FILTER_EFFECT_ID = "fb9f0fab-9eb9-4756-8588-8dc3c6ad04d0";
 
+export type SmartFilterEffect = "Like" | "Love" | "Applause" | "Laugh" | "Surprised";
+
 export class SmartFilterVideoApp {
     private _outputCanvas: HTMLCanvasElement;
+    private _localDebugMode: boolean;
 
     private _engine: ThinEngine;
     private _internalInputTexture: InternalTexture;
     private _inputTexture: ThinTexture;
-    private _smartFilter: ReactionsSmartFilter;
+    private _effects: Map<SmartFilterEffect, IEffect> = new Map<SmartFilterEffect, IEffect>();
     private _currentEffect: Nullable<IEffect> = null;
-    private _smartFilterRuntime: Nullable<SmartFilterRuntime> = null;
+    private _currentEffectCompletedObserver: Nullable<Observer<void>> = null;
 
-    constructor(outputCanvas: HTMLCanvasElement) {
+    constructor(outputCanvas: HTMLCanvasElement, localDebugMode: boolean) {
         this._outputCanvas = outputCanvas;
+        this._localDebugMode = localDebugMode;
 
         this._engine = new ThinEngine(this._outputCanvas);
+        (window as any).thinEngine = this._engine;
 
         // Create Dynamic Texture
         this._internalInputTexture = this._engine.createDynamicTexture(
@@ -37,16 +42,23 @@ export class SmartFilterVideoApp {
         );
         this._inputTexture = new ThinTexture(this._internalInputTexture);
 
-        // Create Smart Filter
-        this._smartFilter = new ReactionsSmartFilter(this._engine);
-
-        // Register the smart filter with the global object so the editor browser extension can find it
-        (window as any).currentSmartFilter = this._smartFilter.smartFilter;
-        (window as any).thinEngine = this._engine;
+        // Register effects
+        this._effects.set("Like", new LikeEffect(this._engine, localDebugMode));
+        this._effects.set("Love", new LoveEffect(this._engine, localDebugMode));
     }
 
-    public async initRuntime(): Promise<void> {
-        this._smartFilterRuntime = await this._smartFilter.initRuntime(this._inputTexture);
+    public async initRuntimes(): Promise<void> {
+        const initPromises: Promise<void>[] = [];
+        for (const effect of this._effects.values()) {
+            initPromises.push(effect.initialize(this._inputTexture));
+        }
+        await Promise.all(initPromises);
+
+        if (this._localDebugMode) {
+            this._engine.runRenderLoop(() => {
+                this._currentEffect?.renderFrame();
+            });
+        }
     }
 
     public videoEffectSelected(effectId: string | undefined): Promise<void> {
@@ -54,22 +66,26 @@ export class SmartFilterVideoApp {
         return Promise.resolve();
     }
 
-    public startLikeFilter(): void {}
-
-    public startLoveFilter(): void {
-        if (this._smartFilterRuntime) {
-            this._startEffect(new LoveEffect(this._smartFilter));
+    public startFilter(effect: SmartFilterEffect): void {
+        const effectInstance = this._effects.get(effect);
+        if (effectInstance) {
+            this._startEffect(effectInstance);
         }
     }
 
     private _startEffect(effect: IEffect): void {
         if (this._currentEffect) {
+            if (this._currentEffectCompletedObserver) {
+                this._currentEffect.onEffectCompleted.remove(this._currentEffectCompletedObserver);
+                this._currentEffectCompletedObserver = null;
+            }
             this._currentEffect.stop(false);
+            this._currentEffect = null;
         }
 
         this._currentEffect = effect;
-        this._currentEffect.onEffectCompleted.add(() => {
-            console.log("Effect completed");
+        this._currentEffectCompletedObserver = this._currentEffect.onEffectCompleted.addOnce(() => {
+            console.log(`[${effect.name}] Effect completed`);
             if (this._currentEffect == effect) {
                 this._currentEffect = null;
             }
@@ -88,7 +104,7 @@ export class SmartFilterVideoApp {
             this._engine.updateDynamicTexture(this._internalInputTexture, videoFrame as unknown as any, true);
 
             this._engine.beginFrame();
-            this._smartFilterRuntime!.render();
+            this._currentEffect.renderFrame();
             this._engine.endFrame();
 
             const outputVideoFrame = new VideoFrame(this._outputCanvas, {

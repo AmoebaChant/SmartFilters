@@ -9,16 +9,17 @@ import {
 import type { ThinEngine } from "@babylonjs/core/Engines/thinEngine";
 import type { ThinTexture } from "@babylonjs/core/Materials/Textures/thinTexture";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
-import { HeartsBlock } from "../configuration/blocks/generators/heartsBlock";
-import { CompositionBlock } from "../configuration/blocks/effects/compositionBlock";
-import { NeonHeartBlock } from "../configuration/blocks/generators/neonHeartBlock";
-import { GreenScreenMaskBlock } from "../configuration/blocks/effects/greenScreenMaskBlock";
-import { TintBlock } from "../configuration/blocks/effects/tintBlock";
+import { HeartsBlock } from "../../configuration/blocks/generators/heartsBlock";
+import { CompositionBlock } from "../../configuration/blocks/effects/compositionBlock";
+import { NeonHeartBlock } from "../../configuration/blocks/generators/neonHeartBlock";
+import { GreenScreenMaskBlock } from "../../configuration/blocks/effects/greenScreenMaskBlock";
+import { TintBlock } from "../../configuration/blocks/effects/tintBlock";
 
-export class ReactionsSmartFilter {
+export class LoveSmartFilter {
     private _masterDisableInputBlock: InputBlock<ConnectionPointType.Boolean>;
     private _engine: ThinEngine;
     private _timeInputBlock: InputBlock<ConnectionPointType.Float>;
+    private _localDebugMode: boolean = false;
 
     public smartFilter: SmartFilter;
     public textureInputBlock: InputBlock<ConnectionPointType.Texture>;
@@ -29,15 +30,16 @@ export class ReactionsSmartFilter {
     public set time(value: number) {
         this._timeInputBlock.runtimeValue.value = value;
     }
-    public get loveEffectDisabled(): boolean {
+    public get disabled(): boolean {
         return this._masterDisableInputBlock.runtimeValue.value;
     }
-    public set loveEffectDisabled(value: boolean) {
+    public set disabled(value: boolean) {
         this._masterDisableInputBlock.runtimeValue.value = value;
     }
 
-    constructor(engine: ThinEngine) {
+    constructor(engine: ThinEngine, localDebugMode: boolean) {
         this._engine = engine;
+        this._localDebugMode = localDebugMode;
 
         this.smartFilter = new SmartFilter("Love");
 
@@ -93,12 +95,6 @@ export class ReactionsSmartFilter {
 
         // Hearts block
         const heartsBlock = new HeartsBlock(this.smartFilter, "hearts");
-        const heartsInput = new InputBlock<ConnectionPointType.Texture>(
-            this.smartFilter,
-            "heartsTexture",
-            ConnectionPointType.Texture,
-            createStrongRef(createImageTexture(this._engine, "assets/kittens.jpg"))
-        );
         this._timeInputBlock = new InputBlock<ConnectionPointType.Float>(
             this.smartFilter,
             "time",
@@ -106,8 +102,17 @@ export class ReactionsSmartFilter {
             createStrongRef(0)
         );
         this._masterDisableInputBlock.output.connectTo(heartsBlock.disabled);
-        //this.textureInputBlock.output.connectTo(heartsBlock.input);
-        heartsInput.output.connectTo(heartsBlock.input);
+        if (this._localDebugMode) {
+            const heartsInput = new InputBlock<ConnectionPointType.Texture>(
+                this.smartFilter,
+                "heartsTexture",
+                ConnectionPointType.Texture,
+                createStrongRef(createImageTexture(this._engine, "assets/kittens.jpg"))
+            );
+            heartsInput.output.connectTo(heartsBlock.input);
+        } else {
+            this.textureInputBlock.output.connectTo(heartsBlock.input);
+        }
         this._timeInputBlock.output.connectTo(heartsBlock.time);
         tintColorInput.output.connectTo(heartsBlock.tint);
 
@@ -144,7 +149,9 @@ export class ReactionsSmartFilter {
     public async initRuntime(inputTexture: ThinTexture): Promise<SmartFilterRuntime> {
         const smartFilterRuntime = await this.smartFilter.createRuntimeAsync(this._engine);
 
-        // inputTexture = createImageTexture(this._engine, "assets/kevinWithGreenScreen.png");
+        if (this._localDebugMode) {
+            inputTexture = createImageTexture(this._engine, "assets/kevinWithGreenScreen.png");
+        }
 
         this.textureInputBlock.runtimeValue.value = inputTexture;
 
