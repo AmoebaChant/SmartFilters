@@ -8,8 +8,9 @@ import type { InternalTexture } from "@babylonjs/core/Materials/Textures/interna
 import type { IEffect } from "./effects/IEffect";
 import { LoveEffect } from "./effects/loveEffect";
 import { LikeEffect } from "./effects/likeEffect";
-import type { Observer } from "@babylonjs/core/Misc/observable";
+import type { Observable, Observer } from "@babylonjs/core/Misc/observable";
 import { NullEffect } from "./effects/nullEffect";
+import { PerfCounter } from "@babylonjs/core/Misc/perfCounter";
 
 export const SMART_FILTER_EFFECT_ID = "f71bd30b-c5e9-48ff-b039-42bc19df95a8";
 export const LOCAL_SMART_FILTER_EFFECT_ID = "fb9f0fab-9eb9-4756-8588-8dc3c6ad04d0";
@@ -17,8 +18,14 @@ export const LOCAL_SMART_FILTER_EFFECT_ID = "fb9f0fab-9eb9-4756-8588-8dc3c6ad04d
 export type SmartFilterEffect = "Like" | "Love" | "Applause" | "Laugh" | "Surprised";
 
 export class SmartFilterVideoApp {
-    private _outputCanvas: HTMLCanvasElement;
-    private _localDebugMode: boolean;
+    private readonly _outputCanvas: HTMLCanvasElement;
+    private readonly _localDebugMode: boolean;
+    private readonly _onNewAverageFrameProcessingValue: Observable<number>;
+    private readonly _onNewFpsValue: Observable<number>;
+    private _frameProcessingTimePerfCounter: PerfCounter = new PerfCounter();
+    private _frameCount: number = 0;
+
+    private _timeOfLastDebugUpdate: number = 0;
 
     private _engine: ThinEngine;
     private _internalInputTexture: InternalTexture;
@@ -28,10 +35,16 @@ export class SmartFilterVideoApp {
     private _currentEffect: IEffect;
     private _currentEffectCompletedObserver: Nullable<Observer<void>> = null;
 
-    constructor(outputCanvas: HTMLCanvasElement, localDebugMode: boolean) {
+    constructor(
+        outputCanvas: HTMLCanvasElement,
+        localDebugMode: boolean,
+        onNewAverageFrameProcessingValue: Observable<number>,
+        onNewFpsValue: Observable<number>
+    ) {
         this._outputCanvas = outputCanvas;
         this._localDebugMode = localDebugMode;
-
+        this._onNewAverageFrameProcessingValue = onNewAverageFrameProcessingValue;
+        this._onNewFpsValue = onNewFpsValue;
         this._engine = new ThinEngine(this._outputCanvas);
         (window as any).thinEngine = this._engine;
 
@@ -95,9 +108,13 @@ export class SmartFilterVideoApp {
             }
         });
         this._currentEffect.start();
+
+        this._frameProcessingTimePerfCounter = new PerfCounter();
     }
 
     async videoFrameHandler(frame: videoEffects.VideoFrameData): Promise<VideoFrame> {
+        this._frameProcessingTimePerfCounter.beginMonitoring();
+        this._frameCount++;
         try {
             const videoFrame = frame.videoFrame as VideoFrame;
 
@@ -112,8 +129,8 @@ export class SmartFilterVideoApp {
             this._engine.endFrame();
 
             const outputVideoFrame = new VideoFrame(this._outputCanvas, {
-                displayHeight: videoFrame.displayHeight,
-                displayWidth: videoFrame.displayWidth,
+                displayHeight: this._outputCanvas.height,
+                displayWidth: this._outputCanvas.width,
                 timestamp: videoFrame.timestamp,
             });
 
@@ -121,6 +138,20 @@ export class SmartFilterVideoApp {
         } catch (e) {
             console.error(e);
             throw e;
+        } finally {
+            this._frameProcessingTimePerfCounter.endMonitoring();
+
+            const currentTime = performance.now();
+            const timeSinceLastDebugUpdate = currentTime - this._timeOfLastDebugUpdate;
+
+            if (timeSinceLastDebugUpdate >= 1000) {
+                this._timeOfLastDebugUpdate = currentTime;
+                this._onNewAverageFrameProcessingValue.notifyObservers(
+                    this._frameProcessingTimePerfCounter.lastSecAverage
+                );
+                this._onNewFpsValue.notifyObservers(this._frameCount / (timeSinceLastDebugUpdate / 1000));
+                this._frameCount = 0;
+            }
         }
     }
 

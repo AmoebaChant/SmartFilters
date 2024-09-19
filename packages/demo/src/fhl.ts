@@ -2,6 +2,7 @@ import { app, videoEffects } from "@microsoft/teams-js";
 import { LOCAL_SMART_FILTER_EFFECT_ID, SMART_FILTER_EFFECT_ID, SmartFilterVideoApp } from "./fhl/smartFilterVideoApp";
 // import { LocalTestWithWebcam } from "./fhl/localTestWithWebcam";
 import type { Nullable } from "@babylonjs/core/types";
+import { Observable } from "@babylonjs/core/Misc/observable";
 
 // Read page elements
 const likeButton = document.getElementById("likeButton") as HTMLButtonElement;
@@ -9,13 +10,44 @@ const loveButton = document.getElementById("loveButton") as HTMLButtonElement;
 const applauseButton = document.getElementById("applauseButton") as HTMLButtonElement;
 const laughButton = document.getElementById("laughButton") as HTMLButtonElement;
 const surprisedButton = document.getElementById("surprisedButton") as HTMLButtonElement;
+const debugUi = document.getElementById("debugUi") as HTMLDivElement;
+const avgProcessingTimeDiv = document.getElementById("avgProcessingTime") as HTMLDivElement;
+const fpsDiv = document.getElementById("fps") as HTMLDivElement;
+
+// Debug UI update code
+const onNewAverageFrameProcessingValue: Observable<number> = new Observable<number>();
+onNewAverageFrameProcessingValue.add((value) => {
+    avgProcessingTimeDiv.innerText = `${value.toFixed(2)}ms`;
+});
+const onNewFpsValue: Observable<number> = new Observable<number>();
+onNewFpsValue.add((value) => {
+    fpsDiv.innerText = value.toFixed(2);
+});
+
+// Set up hidden keystroke approach to showing the debug UI
+document.addEventListener("keydown", (e) => {
+    if (debugUi.style.display === "none") {
+        if (e.key === "d") {
+            debugUi.style.display = "block";
+        }
+    } else {
+        if (e.key === "Escape") {
+            debugUi.style.display = "none";
+        }
+    }
+});
 
 const outputCanvas = document.getElementById("outputCanvas") as HTMLCanvasElement;
 
 async function initializeSmartFilterApp(localDebugMode: boolean): Promise<SmartFilterVideoApp> {
     // Initialize the SmartFilter Video App
     console.log("Initializing SmartFilter Video App...");
-    const videoApp = new SmartFilterVideoApp(outputCanvas, localDebugMode);
+    const videoApp = new SmartFilterVideoApp(
+        outputCanvas,
+        localDebugMode,
+        onNewAverageFrameProcessingValue,
+        onNewFpsValue
+    );
 
     console.log("Initializing SmartFilter Runtime...");
     await videoApp.initRuntimes();
