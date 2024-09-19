@@ -9,6 +9,7 @@ import type { IEffect } from "./effects/IEffect";
 import { LoveEffect } from "./effects/loveEffect";
 import { LikeEffect } from "./effects/likeEffect";
 import type { Observer } from "@babylonjs/core/Misc/observable";
+import { NullEffect } from "./effects/nullEffect";
 
 export const SMART_FILTER_EFFECT_ID = "f71bd30b-c5e9-48ff-b039-42bc19df95a8";
 export const LOCAL_SMART_FILTER_EFFECT_ID = "fb9f0fab-9eb9-4756-8588-8dc3c6ad04d0";
@@ -23,7 +24,8 @@ export class SmartFilterVideoApp {
     private _internalInputTexture: InternalTexture;
     private _inputTexture: ThinTexture;
     private _effects: Map<SmartFilterEffect, IEffect> = new Map<SmartFilterEffect, IEffect>();
-    private _currentEffect: Nullable<IEffect> = null;
+    private _nullEffect: NullEffect;
+    private _currentEffect: IEffect;
     private _currentEffectCompletedObserver: Nullable<Observer<void>> = null;
 
     constructor(outputCanvas: HTMLCanvasElement, localDebugMode: boolean) {
@@ -45,10 +47,13 @@ export class SmartFilterVideoApp {
         // Register effects
         this._effects.set("Like", new LikeEffect(this._engine, localDebugMode));
         this._effects.set("Love", new LoveEffect(this._engine, localDebugMode));
+        this._nullEffect = new NullEffect(this._engine, localDebugMode);
+        this._currentEffect = this._nullEffect;
+        this._nullEffect.start();
     }
 
     public async initRuntimes(): Promise<void> {
-        const initPromises: Promise<void>[] = [];
+        const initPromises: Promise<void>[] = [this._nullEffect.initialize(this._inputTexture)];
         for (const effect of this._effects.values()) {
             initPromises.push(effect.initialize(this._inputTexture));
         }
@@ -56,7 +61,7 @@ export class SmartFilterVideoApp {
 
         if (this._localDebugMode) {
             this._engine.runRenderLoop(() => {
-                this._currentEffect?.renderFrame();
+                this._currentEffect.renderFrame();
             });
         }
     }
@@ -80,14 +85,13 @@ export class SmartFilterVideoApp {
                 this._currentEffectCompletedObserver = null;
             }
             this._currentEffect.stop(false);
-            this._currentEffect = null;
         }
 
         this._currentEffect = effect;
         this._currentEffectCompletedObserver = this._currentEffect.onEffectCompleted.addOnce(() => {
             console.log(`[${effect.name}] Effect completed`);
             if (this._currentEffect == effect) {
-                this._currentEffect = null;
+                this._startEffect(this._nullEffect);
             }
         });
         this._currentEffect.start();

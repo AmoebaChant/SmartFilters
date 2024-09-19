@@ -12,8 +12,8 @@ import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { HeartsBlock } from "../../configuration/blocks/generators/heartsBlock";
 import { CompositionBlock } from "../../configuration/blocks/effects/compositionBlock";
 import { NeonHeartBlock } from "../../configuration/blocks/generators/neonHeartBlock";
-import { GreenScreenMaskBlock } from "../../configuration/blocks/effects/greenScreenMaskBlock";
 import { TintBlock } from "../../configuration/blocks/effects/tintBlock";
+import { MaskBlock } from "../../configuration/blocks/effects/maskBlock";
 
 export class LoveSmartFilter {
     private _masterDisableInputBlock: InputBlock<ConnectionPointType.Boolean>;
@@ -45,7 +45,7 @@ export class LoveSmartFilter {
 
         this.textureInputBlock = new InputBlock<ConnectionPointType.Texture>(
             this.smartFilter,
-            "videoFrame",
+            "videoFrameWithSegment",
             ConnectionPointType.Texture,
             createStrongRef(null)
         );
@@ -57,23 +57,35 @@ export class LoveSmartFilter {
             createStrongRef(true)
         );
 
-        // Green Screen Mask for the input texture
-        const greenScreenMaskBlock = new GreenScreenMaskBlock(this.smartFilter, "greenScreenMask");
-        const greenScreenMaskColorInput = new InputBlock<ConnectionPointType.Color3>(
+        // Composition to extract person frame from input
+        const personCompositionBlock = new CompositionBlock(this.smartFilter, "personComposition");
+        const halfFloatInputBlock = new InputBlock<ConnectionPointType.Float>(
             this.smartFilter,
-            "greenScreenColor",
-            ConnectionPointType.Color3,
-            createStrongRef({ r: 92 / 255, g: 204 / 255, b: 78 / 255 })
-        );
-        const greenScreenDistanceInput = new InputBlock<ConnectionPointType.Float>(
-            this.smartFilter,
-            "greenScreenDistance",
+            "halfFloat",
             ConnectionPointType.Float,
-            createStrongRef(0.1)
+            createStrongRef(0.5)
         );
-        this.textureInputBlock.output.connectTo(greenScreenMaskBlock.input);
-        greenScreenMaskColorInput.output.connectTo(greenScreenMaskBlock.reference);
-        greenScreenDistanceInput.output.connectTo(greenScreenMaskBlock.distance);
+        const twoFloatInputBlock = new InputBlock<ConnectionPointType.Float>(
+            this.smartFilter,
+            "twoFloat",
+            ConnectionPointType.Float,
+            createStrongRef(2.0)
+        );
+        this.textureInputBlock.output.connectTo(personCompositionBlock.background);
+        this.textureInputBlock.output.connectTo(personCompositionBlock.foreground);
+        halfFloatInputBlock.output.connectTo(personCompositionBlock.foregroundTop);
+        twoFloatInputBlock.output.connectTo(personCompositionBlock.foregroundHeight);
+
+        // Composition to extract mask frame from input
+        const maskCompositionBlock = new CompositionBlock(this.smartFilter, "maskComposition");
+        this.textureInputBlock.output.connectTo(maskCompositionBlock.background);
+        this.textureInputBlock.output.connectTo(maskCompositionBlock.foreground);
+        twoFloatInputBlock.output.connectTo(maskCompositionBlock.foregroundHeight);
+
+        // Mask block
+        const maskBlock = new MaskBlock(this.smartFilter, "Mask");
+        personCompositionBlock.output.connectTo(maskBlock.input);
+        maskCompositionBlock.output.connectTo(maskBlock.mask);
 
         // Tint block
         const tintBlock = new TintBlock(this.smartFilter, "tint");
@@ -89,7 +101,7 @@ export class LoveSmartFilter {
             ConnectionPointType.Float,
             createStrongRef(0.26)
         );
-        greenScreenMaskBlock.output.connectTo(tintBlock.input);
+        maskBlock.output.connectTo(tintBlock.input);
         tintColorInput.output.connectTo(tintBlock.tint);
         tintColorAmountInput.output.connectTo(tintBlock.amount);
 
@@ -102,17 +114,7 @@ export class LoveSmartFilter {
             createStrongRef(0)
         );
         this._masterDisableInputBlock.output.connectTo(heartsBlock.disabled);
-        if (this._localDebugMode) {
-            const heartsInput = new InputBlock<ConnectionPointType.Texture>(
-                this.smartFilter,
-                "heartsTexture",
-                ConnectionPointType.Texture,
-                createStrongRef(createImageTexture(this._engine, "assets/kittens.jpg"))
-            );
-            heartsInput.output.connectTo(heartsBlock.input);
-        } else {
-            this.textureInputBlock.output.connectTo(heartsBlock.input);
-        }
+        personCompositionBlock.output.connectTo(heartsBlock.input);
         this._timeInputBlock.output.connectTo(heartsBlock.time);
         tintColorInput.output.connectTo(heartsBlock.tint);
 
@@ -150,7 +152,7 @@ export class LoveSmartFilter {
         const smartFilterRuntime = await this.smartFilter.createRuntimeAsync(this._engine);
 
         if (this._localDebugMode) {
-            inputTexture = createImageTexture(this._engine, "assets/kevinWithGreenScreen.png");
+            inputTexture = createImageTexture(this._engine, "assets/stackedImageAndMask.png");
         }
 
         this.textureInputBlock.runtimeValue.value = inputTexture;
