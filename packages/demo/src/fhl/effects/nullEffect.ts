@@ -17,7 +17,7 @@ export class NullEffect extends EffectBase implements IEffect {
 
         // Register the smart filter with the global object so the editor browser extension can find it
         // NOTE: last one wins, so this should only be uncommented for one effect at a time for development
-        (window as any).currentSmartFilter = this._smartFilter.smartFilter;
+        //(window as any).currentSmartFilter = this._smartFilter.smartFilter;
     }
 
     protected override _startInternal(): void {}

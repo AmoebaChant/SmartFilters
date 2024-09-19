@@ -14,6 +14,7 @@ import { CompositionBlock } from "../../configuration/blocks/effects/composition
 import { NeonHeartBlock } from "../../configuration/blocks/generators/neonHeartBlock";
 import { TintBlock } from "../../configuration/blocks/effects/tintBlock";
 import { MaskBlock } from "../../configuration/blocks/effects/maskBlock";
+import { splitInputTexture } from "./effectHelpers";
 
 export class LoveSmartFilter {
     private _masterDisableInputBlock: InputBlock<ConnectionPointType.Boolean>;
@@ -57,35 +58,16 @@ export class LoveSmartFilter {
             createStrongRef(true)
         );
 
-        // Composition to extract person frame from input
-        const personCompositionBlock = new CompositionBlock(this.smartFilter, "personComposition");
-        const halfFloatInputBlock = new InputBlock<ConnectionPointType.Float>(
+        // Get person and mask textures
+        const { videoTextureConnectionPoint, maskTextureConnectionPoint } = splitInputTexture(
             this.smartFilter,
-            "halfFloat",
-            ConnectionPointType.Float,
-            createStrongRef(0.5)
+            this.textureInputBlock
         );
-        const twoFloatInputBlock = new InputBlock<ConnectionPointType.Float>(
-            this.smartFilter,
-            "twoFloat",
-            ConnectionPointType.Float,
-            createStrongRef(2.0)
-        );
-        this.textureInputBlock.output.connectTo(personCompositionBlock.background);
-        this.textureInputBlock.output.connectTo(personCompositionBlock.foreground);
-        halfFloatInputBlock.output.connectTo(personCompositionBlock.foregroundTop);
-        twoFloatInputBlock.output.connectTo(personCompositionBlock.foregroundHeight);
-
-        // Composition to extract mask frame from input
-        const maskCompositionBlock = new CompositionBlock(this.smartFilter, "maskComposition");
-        this.textureInputBlock.output.connectTo(maskCompositionBlock.background);
-        this.textureInputBlock.output.connectTo(maskCompositionBlock.foreground);
-        twoFloatInputBlock.output.connectTo(maskCompositionBlock.foregroundHeight);
 
         // Mask block
         const maskBlock = new MaskBlock(this.smartFilter, "Mask");
-        personCompositionBlock.output.connectTo(maskBlock.input);
-        maskCompositionBlock.output.connectTo(maskBlock.mask);
+        videoTextureConnectionPoint.connectTo(maskBlock.input);
+        maskTextureConnectionPoint.connectTo(maskBlock.mask);
 
         // Tint block
         const tintBlock = new TintBlock(this.smartFilter, "tint");
@@ -114,7 +96,7 @@ export class LoveSmartFilter {
             createStrongRef(0)
         );
         this._masterDisableInputBlock.output.connectTo(heartsBlock.disabled);
-        personCompositionBlock.output.connectTo(heartsBlock.input);
+        videoTextureConnectionPoint.connectTo(heartsBlock.input);
         this._timeInputBlock.output.connectTo(heartsBlock.time);
         tintColorInput.output.connectTo(heartsBlock.tint);
 

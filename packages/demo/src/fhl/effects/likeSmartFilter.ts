@@ -9,6 +9,7 @@ import {
 import type { ThinEngine } from "@babylonjs/core/Engines/thinEngine";
 import type { ThinTexture } from "@babylonjs/core/Materials/Textures/thinTexture";
 import { BlackAndWhiteBlock } from "../../configuration/blocks/effects/blackAndWhiteBlock";
+import { splitInputTexture } from "./effectHelpers";
 
 export class LikeSmartFilter {
     private _disableInputBlock: InputBlock<ConnectionPointType.Boolean>;
@@ -38,6 +39,9 @@ export class LikeSmartFilter {
             createStrongRef(null)
         );
 
+        // Get person and mask textures
+        const { videoTextureConnectionPoint } = splitInputTexture(this.smartFilter, this.textureInputBlock);
+
         // Black and white block
         const blackAndWhiteBlock = new BlackAndWhiteBlock(this.smartFilter, "blackAndWhite");
         this._disableInputBlock = new InputBlock<ConnectionPointType.Boolean>(
@@ -47,7 +51,7 @@ export class LikeSmartFilter {
             createStrongRef(true)
         );
         this._disableInputBlock.output.connectTo(blackAndWhiteBlock.disabled);
-        this.textureInputBlock.output.connectTo(blackAndWhiteBlock.input);
+        videoTextureConnectionPoint.connectTo(blackAndWhiteBlock.input);
         blackAndWhiteBlock.output.connectTo(this.smartFilter.output);
     }
 
@@ -55,7 +59,7 @@ export class LikeSmartFilter {
         const smartFilterRuntime = await this.smartFilter.createRuntimeAsync(this._engine);
 
         if (this._localDebugMode) {
-            inputTexture = createImageTexture(this._engine, "assets/kevinWithGreenScreen.png");
+            inputTexture = createImageTexture(this._engine, "assets/stackedImageAndMask.png");
         }
 
         this.textureInputBlock.runtimeValue.value = inputTexture;
