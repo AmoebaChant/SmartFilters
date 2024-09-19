@@ -85,6 +85,16 @@ export function getBlockDeserializers(): Map<string, DeserializeBlockV1> {
         return new GreenScreenBlock(smartFilter, serializedBlock.name);
     });
 
+    deserializers.set(
+        BlockNames.greenScreenMask,
+        async (smartFilter: SmartFilter, serializedBlock: ISerializedBlockV1) => {
+            const { GreenScreenMaskBlock } = await import(
+                /* webpackChunkName: "greenScreenMaskBlock" */ "./blocks/effects/greenScreenMaskBlock"
+            );
+            return new GreenScreenMaskBlock(smartFilter, serializedBlock.name);
+        }
+    );
+
     deserializers.set(BlockNames.glass, async (smartFilter: SmartFilter, serializedBlock: ISerializedBlockV1) => {
         const { GlassBlock } = await import(/* webpackChunkName: "glassBlock" */ "./blocks/effects/glassBlock");
         return new GlassBlock(smartFilter, serializedBlock.name);

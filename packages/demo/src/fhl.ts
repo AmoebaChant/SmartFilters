@@ -1,20 +1,27 @@
 import { app, videoEffects } from "@microsoft/teams-js";
 import { LOCAL_SMART_FILTER_EFFECT_ID, SMART_FILTER_EFFECT_ID, SmartFilterVideoApp } from "./fhl/smartFilterVideoApp";
-import { Observable } from "@babylonjs/core/Misc/observable";
+import { LocalTestWithWebcam } from "./fhl/localTestWithWebcam";
+import type { Nullable } from "@babylonjs/core/types";
 
 // Read page elements
 const likeButton = document.getElementById("likeButton") as HTMLButtonElement;
+const loveButton = document.getElementById("loveButton") as HTMLButtonElement;
 const outputCanvas = document.getElementById("outputCanvas") as HTMLCanvasElement;
-
-// Register button click handlers
-const onLikeClickedObservable = new Observable<void>();
-likeButton.addEventListener("click", () => {
-    onLikeClickedObservable.notifyObservers();
-});
 
 // Initialize the SmartFilter Video App
 console.log("Initializing SmartFilter Video App...");
-const videoApp = new SmartFilterVideoApp(outputCanvas, onLikeClickedObservable);
+const videoApp = new SmartFilterVideoApp(outputCanvas);
+
+// Register button click handlers
+likeButton.addEventListener("click", () => {
+    videoApp.startLikeFilter();
+});
+loveButton.addEventListener("click", () => {
+    videoApp.startLoveFilter();
+});
+
+// Local test in case we are not running in Teams
+let localTestWithWebcam: Nullable<LocalTestWithWebcam> = null;
 
 /**
  * Main function to initialize the app.
@@ -53,7 +60,14 @@ async function main(): Promise<void> {
                 : SMART_FILTER_EFFECT_ID
         );
     } catch (e) {
-        console.log("Initialize failed - not in Teams - running in debug mode:", e);
+        console.log("Not in Teams - running in debug mode:");
+        localTestWithWebcam = new LocalTestWithWebcam();
+        await localTestWithWebcam.load();
+        localTestWithWebcam.onVideoFrameAvailable.add(async (videoFrame) => {
+            const outputFrame = await videoApp.videoFrameHandler({ videoFrame });
+            outputFrame.close();
+        });
+        outputCanvas.style.display = "block";
     }
 }
 

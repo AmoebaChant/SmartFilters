@@ -11,7 +11,7 @@ export type WebCamSource = {
 
 export const WebCamInputBlockName = "WebCam";
 
-const LocalStorageWebcamIdKey = "webCamDeviceId";
+export const LocalStorageWebcamIdKey = "webCamDeviceId";
 const LocalStorageNameKey = "webCamName";
 
 export class WebCamInputBlock extends InputBlock<ConnectionPointType.Texture> {

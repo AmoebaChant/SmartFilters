@@ -32,6 +32,7 @@ import { HeartsBlock } from "../blocks/generators/heartsBlock";
 import { NeonHeartBlock } from "../blocks/generators/neonHeartBlock";
 import { SpritesheetBlock } from "../blocks/effects/spritesheetBlock";
 import { TintBlock } from "../blocks/effects/tintBlock";
+import { GreenScreenMaskBlock } from "../blocks/effects/greenScreenMaskBlock";
 
 export const blockEditorRegistrations: IBlockEditorRegistration[] = [
     ...defaultBlockEditorRegistrations,
@@ -157,6 +158,23 @@ export const blockEditorRegistrations: IBlockEditorRegistration[] = [
         },
         category: "Effects",
         tooltip: "Replaces a green screen background with a different texture",
+    },
+    {
+        name: "GreenScreenMaskBlock",
+        factory: (smartFilter: SmartFilter) => {
+            const block = new GreenScreenMaskBlock(smartFilter, "GreenScreenMask");
+            const reference = new InputBlock(smartFilter, "Reference", ConnectionPointType.Color3, {
+                r: 92 / 255,
+                g: 204 / 255,
+                b: 78 / 255,
+            });
+            const distance = new InputBlock(smartFilter, "Distance", ConnectionPointType.Float, 0.25);
+            reference.output.connectTo(block.reference);
+            distance.output.connectTo(block.distance);
+            return block;
+        },
+        category: "Effects",
+        tooltip: "Replaces a green screen background with a color",
     },
     {
         name: "BlackAndWhiteAndBlurBlock",

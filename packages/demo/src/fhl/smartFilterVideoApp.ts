@@ -8,15 +8,13 @@ import "@babylonjs/core/Engines/Extensions/engine.dynamicTexture";
 import type { InternalTexture } from "@babylonjs/core/Materials/Textures/internalTexture";
 import { ReactionsSmartFilter } from "./reactionsSmartFilter";
 import type { IEffect } from "./effects/IEffect";
-import { LikeEffect } from "./effects/likeEffect";
-import type { Observable } from "@babylonjs/core/Misc/observable";
+import { LoveEffect } from "./effects/loveEffect";
 
 export const SMART_FILTER_EFFECT_ID = "f71bd30b-c5e9-48ff-b039-42bc19df95a8";
 export const LOCAL_SMART_FILTER_EFFECT_ID = "fb9f0fab-9eb9-4756-8588-8dc3c6ad04d0";
 
 export class SmartFilterVideoApp {
     private _outputCanvas: HTMLCanvasElement;
-    private _onLikeClickedObservable: Observable<void>;
 
     private _engine: ThinEngine;
     private _internalInputTexture: InternalTexture;
@@ -25,9 +23,8 @@ export class SmartFilterVideoApp {
     private _currentEffect: Nullable<IEffect> = null;
     private _smartFilterRuntime: Nullable<SmartFilterRuntime> = null;
 
-    constructor(outputCanvas: HTMLCanvasElement, onLikeClickedObservable: Observable<void>) {
+    constructor(outputCanvas: HTMLCanvasElement) {
         this._outputCanvas = outputCanvas;
-        this._onLikeClickedObservable = onLikeClickedObservable;
 
         this._engine = new ThinEngine(this._outputCanvas);
 
@@ -42,21 +39,27 @@ export class SmartFilterVideoApp {
 
         // Create Smart Filter
         this._smartFilter = new ReactionsSmartFilter(this._engine);
+
+        // Register the smart filter with the global object so the editor browser extension can find it
+        (window as any).currentSmartFilter = this._smartFilter.smartFilter;
+        (window as any).thinEngine = this._engine;
     }
 
     public async initRuntime(): Promise<void> {
         this._smartFilterRuntime = await this._smartFilter.initRuntime(this._inputTexture);
-
-        // Listen to button clicks
-        this._onLikeClickedObservable.add(() => {
-            console.log("Like button clicked");
-            this._startEffect(new LikeEffect(this._smartFilter));
-        });
     }
 
     public videoEffectSelected(effectId: string | undefined): Promise<void> {
         console.log("videoEffectSelected() called", effectId);
         return Promise.resolve();
+    }
+
+    public startLikeFilter(): void {}
+
+    public startLoveFilter(): void {
+        if (this._smartFilterRuntime) {
+            this._startEffect(new LoveEffect(this._smartFilter));
+        }
     }
 
     private _startEffect(effect: IEffect): void {

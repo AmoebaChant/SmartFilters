@@ -7,6 +7,7 @@ export const BlockNames = {
     posterize: "PosterizeBlock",
     kaleidoscope: "KaleidoscopeBlock",
     greenScreen: "GreenScreenBlock",
+    greenScreenMask: "GreenScreenMaskBlock",
     glass: "GlassBlock",
     frame: "FrameBlock",
     blur: "BlurBlock",
