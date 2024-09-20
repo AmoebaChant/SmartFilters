@@ -5,6 +5,7 @@ import {
     createStrongRef,
     InputBlock,
     SmartFilter,
+    SmartFilterOptimizer,
 } from "@babylonjs/smart-filters";
 import type { ThinEngine } from "@babylonjs/core/Engines/thinEngine";
 import type { ThinTexture } from "@babylonjs/core/Materials/Textures/thinTexture";
@@ -131,7 +132,25 @@ export class LoveSmartFilter {
     }
 
     public async initRuntime(inputTexture: ThinTexture): Promise<SmartFilterRuntime> {
-        const smartFilterRuntime = await this.smartFilter.createRuntimeAsync(this._engine);
+        // NOTE: when true, the hearts render on top of the person, which is a bug, because when false they render behind the person
+        const useOptimizer = true;
+        let smartFilterRuntime: SmartFilterRuntime;
+
+        if (useOptimizer) {
+            const optimizer = new SmartFilterOptimizer(this.smartFilter, {
+                maxSamplersInFragmentShader: this._engine.getCaps().maxTexturesImageUnits,
+                removeDisabledBlocks: false,
+            });
+
+            const optimizedSmartFilter = optimizer.optimize();
+            if (!optimizedSmartFilter) {
+                throw new Error("Failed to optimize Smart Filter.");
+            }
+
+            smartFilterRuntime = await optimizedSmartFilter.createRuntimeAsync(this._engine);
+        } else {
+            smartFilterRuntime = await this.smartFilter.createRuntimeAsync(this._engine);
+        }
 
         if (this._localDebugMode) {
             inputTexture = createImageTexture(this._engine, "assets/stackedImageAndMask.png");
