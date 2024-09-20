@@ -1,14 +1,15 @@
 import type { IEffect } from "./IEffect";
-import type { Nullable } from "@babylonjs/core/types";
 import type { ThinTexture } from "@babylonjs/core/Materials/Textures/thinTexture";
 import { LoveSmartFilter } from "./loveSmartFilter";
 import type { ThinEngine } from "@babylonjs/core/Engines/thinEngine";
 import { EffectBase } from "./effectBase";
 
+const FADE_IN_TIME = 500;
+const EFFECT_DURATION = 2500;
+const FADE_OUT_TIME = 500;
+
 export class LoveEffect extends EffectBase implements IEffect {
     private _smartFilter: LoveSmartFilter;
-    private _endEffectTimeout: Nullable<NodeJS.Timeout> = null;
-
     protected override _effectName: string = "LoveEffect";
 
     public constructor(engine: ThinEngine, localDebugMode: boolean) {
@@ -23,22 +24,23 @@ export class LoveEffect extends EffectBase implements IEffect {
     protected override _startInternal(): void {
         this._smartFilter.disabled = false;
         this._smartFilter.time = 0;
-
-        this._endEffectTimeout = setTimeout(() => {
-            console.log(`[${this._effectName}] End effect timer ticked`);
-            this.stop(true);
-        }, 2000);
     }
 
     protected override _timeAdvancedInternal(delta: number): void {
         this._smartFilter.time += 0.001 * delta;
+
+        if (this._totalTimeMs < FADE_IN_TIME) {
+            this._smartFilter.fadeAmount = this._totalTimeMs / FADE_IN_TIME;
+        } else if (this._totalTimeMs >= EFFECT_DURATION - FADE_OUT_TIME) {
+            this._smartFilter.fadeAmount = 1 - (this._totalTimeMs - (EFFECT_DURATION - FADE_OUT_TIME)) / FADE_OUT_TIME;
+        }
+
+        if (this._totalTimeMs >= EFFECT_DURATION) {
+            this.stop(true);
+        }
     }
 
     protected override _stopInternal(): void {
-        if (this._endEffectTimeout) {
-            clearTimeout(this._endEffectTimeout);
-            this._endEffectTimeout = null;
-        }
         this._smartFilter.disabled = true;
     }
 

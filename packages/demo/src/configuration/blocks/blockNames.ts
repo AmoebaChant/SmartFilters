@@ -3,6 +3,7 @@ export const BlockNames = {
     blackAndWhite: "BlackAndWhiteBlock",
     exposure: "ExposureBlock",
     contrast: "ContrastBlock",
+    fade: "FadeBlock",
     desaturate: "DesaturateBlock",
     posterize: "PosterizeBlock",
     kaleidoscope: "KaleidoscopeBlock",

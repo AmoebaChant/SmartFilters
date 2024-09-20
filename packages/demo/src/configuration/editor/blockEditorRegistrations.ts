@@ -33,6 +33,7 @@ import { NeonHeartBlock } from "../blocks/generators/neonHeartBlock";
 import { SpritesheetBlock } from "../blocks/effects/spritesheetBlock";
 import { TintBlock } from "../blocks/effects/tintBlock";
 import { GreenScreenMaskBlock } from "../blocks/effects/greenScreenMaskBlock";
+import { FadeBlock } from "../blocks/effects/fadeBlock";
 
 export const blockEditorRegistrations: IBlockEditorRegistration[] = [
     ...defaultBlockEditorRegistrations,
@@ -181,6 +182,17 @@ export const blockEditorRegistrations: IBlockEditorRegistration[] = [
         factory: (smartFilter: SmartFilter) => new BlackAndWhiteAndBlurBlock(smartFilter, "BlackAndWhiteAndBlurBlock"),
         category: "Effects",
         tooltip: "Transforms the input texture to black and white and blurs it",
+    },
+    {
+        name: "FadeBlock",
+        factory: (smartFilter: SmartFilter) => {
+            const block = new FadeBlock(smartFilter, "Face");
+            const input = new InputBlock(smartFilter, "Amount", ConnectionPointType.Float, 0.5);
+            input.output.connectTo(block.amount);
+            return block;
+        },
+        category: "Transitions",
+        tooltip: "Fades from one texture to another",
     },
     {
         name: "GlitchBlock",

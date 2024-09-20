@@ -9,6 +9,13 @@ export abstract class EffectBase {
     protected _smartFilterRuntime: Nullable<SmartFilterRuntime> = null;
     protected abstract _effectName: string;
 
+    /**
+     * The total time the effect has been running in milliseconds
+     */
+    protected _totalTimeMs = 0;
+
+    private _animationStartTime = 0;
+
     public onEffectCompleted: Observable<void> = new Observable<void>();
 
     public get isStarted(): boolean {
@@ -24,6 +31,8 @@ export abstract class EffectBase {
             return;
         }
         this._isStarted = true;
+        this._totalTimeMs = 0;
+        this._animationStartTime = performance.now();
 
         console.log(`[${this._effectName}] Starting`);
 
@@ -33,10 +42,11 @@ export abstract class EffectBase {
 
         this._updateTimeInterval = setInterval(() => {
             now = performance.now();
+            this._totalTimeMs = now - this._animationStartTime;
             deltaSinceLastUpdate = now - lastTimeUpdate;
             lastTimeUpdate = now;
             this._timeAdvancedInternal(deltaSinceLastUpdate);
-        }, 1);
+        }, 16);
 
         this._startInternal();
     }

@@ -47,6 +47,11 @@ export function getBlockDeserializers(): Map<string, DeserializeBlockV1> {
         return new ExposureBlock(smartFilter, serializedBlock.name);
     });
 
+    deserializers.set(BlockNames.fade, async (smartFilter: SmartFilter, serializedBlock: ISerializedBlockV1) => {
+        const { FadeBlock } = await import(/* webpackChunkName: "fadeBlock" */ "./blocks/effects/fadeBlock");
+        return new FadeBlock(smartFilter, serializedBlock.name);
+    });
+
     deserializers.set(BlockNames.contrast, async (smartFilter: SmartFilter, serializedBlock: ISerializedBlockV1) => {
         const { ContrastBlock } = await import(
             /* webpackChunkName: "contrastBlock" */ "./blocks/effects/contrastBlock"

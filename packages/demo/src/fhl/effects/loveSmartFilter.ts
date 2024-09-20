@@ -16,12 +16,14 @@ import { NeonHeartBlock } from "../../configuration/blocks/generators/neonHeartB
 import { TintBlock } from "../../configuration/blocks/effects/tintBlock";
 import { MaskBlock } from "../../configuration/blocks/effects/maskBlock";
 import { splitInputTexture } from "./effectHelpers";
+import { FadeBlock } from "../../configuration/blocks/effects/fadeBlock";
 
 export class LoveSmartFilter {
     private _masterDisableInputBlock: InputBlock<ConnectionPointType.Boolean>;
     private _engine: ThinEngine;
     private _timeInputBlock: InputBlock<ConnectionPointType.Float>;
     private _localDebugMode: boolean = false;
+    private _fadeAmountInput: InputBlock<ConnectionPointType.Float>;
 
     public smartFilter: SmartFilter;
     public textureInputBlock: InputBlock<ConnectionPointType.Texture>;
@@ -37,6 +39,12 @@ export class LoveSmartFilter {
     }
     public set disabled(value: boolean) {
         this._masterDisableInputBlock.runtimeValue.value = value;
+    }
+    public get fadeAmount(): number {
+        return this._fadeAmountInput.runtimeValue.value;
+    }
+    public set fadeAmount(value: number) {
+        this._fadeAmountInput.runtimeValue.value = value;
     }
 
     constructor(engine: ThinEngine, localDebugMode: boolean) {
@@ -127,8 +135,21 @@ export class LoveSmartFilter {
         neonHeartColor1Input.output.connectTo(neonHeartBlock.color1);
         neonHeartColor2Input.output.connectTo(neonHeartBlock.color2);
 
+        // Fade block
+        const fadeBlock = new FadeBlock(this.smartFilter, "fade");
+        this._fadeAmountInput = new InputBlock<ConnectionPointType.Float>(
+            this.smartFilter,
+            "fadeAmount",
+            ConnectionPointType.Float,
+            createStrongRef(0.0)
+        );
+        this._masterDisableInputBlock.output.connectTo(fadeBlock.disabled);
+        this._fadeAmountInput.output.connectTo(fadeBlock.amount);
+        videoTextureConnectionPoint.connectTo(fadeBlock.input1);
+        neonHeartBlock.output.connectTo(fadeBlock.input2);
+
         // Output
-        neonHeartBlock.output.connectTo(this.smartFilter.output);
+        fadeBlock.output.connectTo(this.smartFilter.output);
     }
 
     public async initRuntime(inputTexture: ThinTexture): Promise<SmartFilterRuntime> {
