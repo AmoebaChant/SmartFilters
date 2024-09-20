@@ -8,6 +8,6 @@
         "resolveJsonModule": true
     },
 
-    "include": ["../**/*.ts", "../**/*.tsx", "./src/configuration/smartFilters/serialized/*.json"],
+    "include": ["../**/*.ts", "../**/*.tsx", "./src/configuration/smartFilters/serialized/*.json", "./src/fhl/effects/*.json"],
     "exclude": ["**/node_modules", "**/.temp"]
 }

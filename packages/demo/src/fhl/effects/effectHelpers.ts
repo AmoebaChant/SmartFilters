@@ -7,6 +7,9 @@ import {
 } from "@babylonjs/smart-filters";
 import { CompositionBlock } from "../../configuration/blocks/effects/compositionBlock";
 
+const VIDEO_EXTRACTOR = "videoExtractor";
+const MASK_EXTRACTOR = "maskExtractor";
+
 export type SplitInputTextureType = {
     videoTextureConnectionPoint: ConnectionPoint<ConnectionPointType.Texture>;
     maskTextureConnectionPoint: ConnectionPoint<ConnectionPointType.Texture>;
@@ -17,7 +20,7 @@ export function splitInputTexture(
     textureInputBlock: InputBlock<ConnectionPointType.Texture>
 ): SplitInputTextureType {
     // Composition to extract person frame from input
-    const videoCompositionBlock = new CompositionBlock(smartFilter, "videoExtractor");
+    const videoCompositionBlock = new CompositionBlock(smartFilter, VIDEO_EXTRACTOR);
     const halfFloatInputBlock = new InputBlock<ConnectionPointType.Float>(
         smartFilter,
         "halfFloat",
@@ -36,7 +39,7 @@ export function splitInputTexture(
     twoFloatInputBlock.output.connectTo(videoCompositionBlock.foregroundHeight);
 
     // Composition to extract mask frame from input
-    const maskCompositionBlock = new CompositionBlock(smartFilter, "maskExtractor");
+    const maskCompositionBlock = new CompositionBlock(smartFilter, MASK_EXTRACTOR);
     textureInputBlock.output.connectTo(maskCompositionBlock.background);
     textureInputBlock.output.connectTo(maskCompositionBlock.foreground);
     twoFloatInputBlock.output.connectTo(maskCompositionBlock.foregroundHeight);
@@ -45,4 +48,26 @@ export function splitInputTexture(
         videoTextureConnectionPoint: videoCompositionBlock.output,
         maskTextureConnectionPoint: maskCompositionBlock.output,
     };
+}
+
+export function splitAndRewireInputTextures(
+    smartFilter: SmartFilter,
+    textureInputBlock: InputBlock<ConnectionPointType.Texture>,
+    maskInputBlock?: InputBlock<ConnectionPointType.Texture>
+): void {
+    const { videoTextureConnectionPoint, maskTextureConnectionPoint } = splitInputTexture(
+        smartFilter,
+        textureInputBlock
+    );
+
+    // Replace wiring of old textures with new textures
+    textureInputBlock.output.endpoints.forEach((endpoint) => {
+        // Don't rewire its newly made composition block
+        if (endpoint.ownerBlock.name != VIDEO_EXTRACTOR && endpoint.ownerBlock.name != MASK_EXTRACTOR) {
+            videoTextureConnectionPoint.connectTo(endpoint as ConnectionPoint<ConnectionPointType.Texture>);
+        }
+    });
+    maskInputBlock?.output.endpoints.forEach((endpoint) => {
+        maskTextureConnectionPoint.connectTo(endpoint as ConnectionPoint<ConnectionPointType.Texture>);
+    });
 }

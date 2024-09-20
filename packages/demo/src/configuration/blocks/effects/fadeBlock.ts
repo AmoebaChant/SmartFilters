@@ -84,7 +84,7 @@ export class FadeBlock extends ShaderBlock {
     /**
      * The class name of the block.
      */
-    public static override ClassName = BlockNames.contrast;
+    public static override ClassName = BlockNames.fade;
 
     /**
      * The input1 texture connection point.
