@@ -133,7 +133,7 @@ export class LoveSmartFilter {
 
     public async initRuntime(inputTexture: ThinTexture): Promise<SmartFilterRuntime> {
         // NOTE: when true, the hearts render on top of the person, which is a bug, because when false they render behind the person
-        const useOptimizer = true;
+        const useOptimizer = false;
         let smartFilterRuntime: SmartFilterRuntime;
 
         if (useOptimizer) {
