@@ -62,7 +62,17 @@ const UniformNameLinePrefix = "    ";
  * @param importPath - The path to import the ShaderProgram type from
  */
 export function convertShaderForHardcodedBlock(fragmentShaderPath: string, importPath: string): void {
-    console.log(`Processing fragment shader: ${fragmentShaderPath}`);
+    console.log(`\nProcessing fragment shader: ${fragmentShaderPath}`);
+
+    // Confirm there is a corresponding .ts file - if not, we should skip this, as it'll be imported directly
+    // using importCustomBlockDefinition() later, and not consumed by a hardcoded block definition.
+    const hardcodedBlockDefinitionFileName = fragmentShaderPath.replace(".fragment.glsl", ".ts");
+    if (!fs.existsSync(hardcodedBlockDefinitionFileName)) {
+        console.log(
+            "Skipping since it doesn't have a corresponding .ts file - use importCustomBlockDefinition() to import it."
+        );
+        return;
+    }
 
     // See if there is a corresponding vertex shader
     let vertexShader: string | undefined = undefined;

@@ -25,7 +25,7 @@ import {
     tintBlockType,
 } from "../blocks/blockTypes.js";
 import { ConnectionPointType } from "../connection/connectionPointType.js";
-import type { ISerializedBlockV1 } from "../serialization/index.js";
+import { importCustomBlockDefinition, type ISerializedBlockV1 } from "../serialization/index.js";
 import type { SmartFilterDeserializer } from "../serialization/smartFilterDeserializer.js";
 import type { SmartFilter } from "../smartFilter.js";
 import { InputBlock } from "../blockFoundation/inputBlock.js";
@@ -261,22 +261,6 @@ export const builtInBlockRegistrations: IBlockRegistration[] = [
         namespace: babylonDemoUtilitiesNamespace,
         tooltip: "Premultiplies the input texture's color against its alpha",
     },
-    {
-        blockType: wipeBlockType,
-        factory: async (
-            smartFilter: SmartFilter,
-            _engine: ThinEngine,
-            _smartFilterDeserializer: SmartFilterDeserializer,
-            serializedBlock: ISerializedBlockV1 | undefined
-        ) => {
-            const module = await import(
-                /* webpackChunkName: "wipeBlock" */ "../blocks/babylon/demo/transitions/wipeBlock.js"
-            );
-            return new module.WipeBlock(smartFilter, serializedBlock?.name || "Wipe");
-        },
-        namespace: babylonDemoTransitionsNamespace,
-        tooltip: "Transition from one texture to another using a wipe",
-    },
 
     // Blocks with custom deserializers
     // --------------------------------
@@ -358,6 +342,26 @@ export const builtInBlockRegistrations: IBlockRegistration[] = [
         },
         namespace: babylonDemoEffectsNamespace,
         tooltip: "Adds colored tint to the input texture",
+    },
+    {
+        blockType: wipeBlockType,
+        factory: async (
+            smartFilter: SmartFilter,
+            _engine: ThinEngine,
+            _smartFilterDeserializer: SmartFilterDeserializer,
+            serializedBlock: ISerializedBlockV1 | undefined
+        ) => {
+            const annotatedGlsl = await import(
+                /* webpackChunkName: "wipeBlock" */ "../blocks/babylon/demo/transitions/wipeBlock.glsl"
+            );
+            const blockDefinition = importCustomBlockDefinition(annotatedGlsl.default);
+            if (blockDefinition.format !== "shaderBlockDefinition") {
+                throw new Error("WipeBlock.glsl must be a serialized ShaderBlockDefinition");
+            }
+            return CustomShaderBlock.Create(smartFilter, serializedBlock?.name || "Wipe", blockDefinition);
+        },
+        namespace: babylonDemoTransitionsNamespace,
+        tooltip: "Transition from one texture to another using a wipe",
     },
 
     // Standard input blocks
