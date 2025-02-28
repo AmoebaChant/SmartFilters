@@ -2,11 +2,11 @@
     "extends": "./tsconfig.build.json",
 
     "compilerOptions": {
-        "rootDir": "./src/utils/buildTools",
+        "rootDir": "./src",
         "outDir": "./buildTools",
         "composite": true
     },
 
-    "include": ["./src/utils/buildTools/**/*.ts"],
-    "exclude": ["**/node_modules", "**/dist"]
+    "include": ["./src/**/*.ts"],
+    "exclude": ["**/node_modules", "**/dist", "./src/blockRegistration/*.ts", "./src/index.ts", "./src/blocks/**/*.ts"]
 }

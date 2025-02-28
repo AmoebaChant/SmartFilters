@@ -1,10 +1,10 @@
+import { importCustomBlockDefinition } from "../../serialization/importCustomBlockDefinition.js";
 import * as fs from "fs";
 
-const ANNOTATED_GLSL = "@BLOCK_DEFINITION@";
+const BLOCK_DEFINITION = "@BLOCK_DEFINITION@";
 
 const FileTemplate = `import type { ThinEngine } from "@babylonjs/core/Engines/thinEngine.js";
 import {
-    importCustomBlockDefinition,
     CustomShaderBlock,
     type BaseBlock,
     type ISerializedBlockV1,
@@ -35,7 +35,7 @@ export function factory(
     _smartFilterDeserializer: SmartFilterDeserializer,
     serializedBlock?: ISerializedBlockV1
 ): BaseBlock {
-    const blockDefinition = importCustomBlockDefinition(annotatedGlsl);
+    const blockDefinition = JSON.parse(blockDefinitionJSON);
     if (blockDefinition.format !== "shaderBlockDefinition") {
         throw new Error("Expected a serialized ShaderBlockDefinition");
     }
@@ -46,7 +46,7 @@ export function factory(
     );
 }
 
-const annotatedGlsl = \`${ANNOTATED_GLSL}\`;
+const blockDefinitionJSON = \`${BLOCK_DEFINITION}\`;
 `;
 
 /**
@@ -66,9 +66,16 @@ export function convertShaderIntoCustomBlockFile(fragmentFullPathAndFileName: st
     // Read the annotated fragment shader glsl
     const annotatedFragmentGlsl = fs.readFileSync(fragmentFullPathAndFileName, "utf8");
 
+    // Parse
+    const blockDefinition = importCustomBlockDefinition(annotatedFragmentGlsl);
+
     // Write the shader TS file
     const outputFullPathAndFileName = fragmentFullPathAndFileName.replace(".fragment.glsl", ".autogen.customBlock.ts");
-    const finalContents = FileTemplate.replace(ANNOTATED_GLSL, annotatedFragmentGlsl);
+    console.log(`Writing custom block file: ${outputFullPathAndFileName}`);
+    const finalContents = FileTemplate.replace(
+        BLOCK_DEFINITION,
+        JSON.stringify(blockDefinition).replace(/\\n/g, "\\\\n")
+    );
 
     fs.writeFileSync(outputFullPathAndFileName, finalContents);
 }
