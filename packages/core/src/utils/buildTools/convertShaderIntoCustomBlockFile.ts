@@ -10,6 +10,7 @@ import {
     type ISerializedBlockV1,
     type SmartFilter,
     type SmartFilterDeserializer,
+    type SerializedShaderBlockDefinition,
 } from "../../../../index.js";
 
 // ************************************************************
@@ -35,18 +36,14 @@ export function factory(
     _smartFilterDeserializer: SmartFilterDeserializer,
     serializedBlock?: ISerializedBlockV1
 ): BaseBlock {
-    const blockDefinition = JSON.parse(blockDefinitionJSON);
-    if (blockDefinition.format !== "shaderBlockDefinition") {
-        throw new Error("Expected a serialized ShaderBlockDefinition");
-    }
     return CustomShaderBlock.Create(
         smartFilter,
         serializedBlock?.name || blockDefinition.blockType.replace("Block", ""),
-        blockDefinition
+        blockDefinition as SerializedShaderBlockDefinition
     );
 }
 
-const blockDefinitionJSON = \`${BLOCK_DEFINITION}\`;
+const blockDefinition = ${BLOCK_DEFINITION};
 `;
 
 /**
@@ -71,11 +68,33 @@ export function convertShaderIntoCustomBlockFile(fragmentFullPathAndFileName: st
 
     // Write the shader TS file
     const outputFullPathAndFileName = fragmentFullPathAndFileName.replace(".fragment.glsl", ".autogen.customBlock.ts");
-    console.log(`Writing custom block file: ${outputFullPathAndFileName}`);
-    const finalContents = FileTemplate.replace(
-        BLOCK_DEFINITION,
-        JSON.stringify(blockDefinition).replace(/\\n/g, "\\\\n")
-    );
+    const finalContents = FileTemplate.replace(BLOCK_DEFINITION, objectToJsString(blockDefinition));
 
     fs.writeFileSync(outputFullPathAndFileName, finalContents);
 }
+
+/**
+ * Converts an object into valid JS that creates that object
+ * @param obj - The object to convert
+ * @param indent - The indent to use for the object
+ * @returns - A string that contains JS that creates the object
+ */
+function objectToJsString(obj: any, indent: string = indentation): string {
+    if (typeof obj !== "object" || obj === null) {
+        return JSON.stringify(obj);
+    }
+
+    if (Array.isArray(obj)) {
+        const arrayItems = obj.map((item) => objectToJsString(item, indent + indentation));
+        return `[\n${indent}${arrayItems.join(`,\n${indent}`)},\n${indent.slice(indentationSize)}]`;
+    }
+
+    const entries = Object.entries(obj).map(([key, value]) => {
+        const formattedValue = objectToJsString(value, indent + indentation);
+        return `${indent}${key}: ${formattedValue}`;
+    });
+    return `{\n${entries.join(",\n")},\n${indent.slice(indentationSize)}}`;
+}
+
+const indentation = "    ";
+const indentationSize = indentation.length;
