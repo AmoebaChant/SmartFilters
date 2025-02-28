@@ -10,7 +10,7 @@ import { createStrongRef } from "../../../../runtime/strongRef.js";
 import type { SmartFilter } from "../../../../smartFilter.js";
 
 import { babylonDemoEffectsNamespace } from "../../../blockNamespaces.js";
-import { shaderProgram, uniforms } from "./pixelateBlock.shader.js";
+import { shaderProgram, uniforms } from "./pixelateBlock.autogen.shaderProgram.js";
 
 /**
  * The shader bindings for the Pixelate block.

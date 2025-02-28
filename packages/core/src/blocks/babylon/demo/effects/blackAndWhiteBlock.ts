@@ -7,7 +7,7 @@ import { ConnectionPointType } from "../../../../connection/connectionPointType.
 import type { SmartFilter } from "../../../../smartFilter.js";
 
 import { babylonDemoEffectsNamespace } from "../../../blockNamespaces.js";
-import { shaderProgram, uniforms } from "./blackAndWhiteBlock.shader.js";
+import { shaderProgram, uniforms } from "./blackAndWhiteBlock.autogen.shaderProgram.js";
 
 /**
  * The shader bindings for the BlackAndWhite block.

@@ -8,7 +8,7 @@ import { DisableableShaderBinding } from "../../../../runtime/shaderRuntime.js";
 import type { SmartFilter } from "../../../../smartFilter.js";
 
 import { babylonDemoEffectsNamespace } from "../../../blockNamespaces.js";
-import { uniforms, shaderProgram } from "./maskBlock.shader.js";
+import { uniforms, shaderProgram } from "./maskBlock.autogen.shaderProgram.js";
 
 /**
  * The shader bindings for the Mask block.

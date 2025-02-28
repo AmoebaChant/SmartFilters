@@ -34,4 +34,5 @@ dist
 !/src/smartFiltersEditor/components/log
 
 # generated shader TS files
-**/*.shader.ts
+**/*.autogen.shaderProgram.ts
+**/*.autogen.customBlock.ts
