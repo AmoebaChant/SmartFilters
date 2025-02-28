@@ -25,7 +25,7 @@ import {
     tintBlockType,
 } from "../blocks/blockTypes.js";
 import { ConnectionPointType } from "../connection/connectionPointType.js";
-import { importCustomBlockDefinition, type ISerializedBlockV1 } from "../serialization/index.js";
+import { type ISerializedBlockV1 } from "../serialization/index.js";
 import type { SmartFilterDeserializer } from "../serialization/smartFilterDeserializer.js";
 import type { SmartFilter } from "../smartFilter.js";
 import { InputBlock } from "../blockFoundation/inputBlock.js";
@@ -347,18 +347,14 @@ export const builtInBlockRegistrations: IBlockRegistration[] = [
         blockType: wipeBlockType,
         factory: async (
             smartFilter: SmartFilter,
-            _engine: ThinEngine,
-            _smartFilterDeserializer: SmartFilterDeserializer,
+            engine: ThinEngine,
+            smartFilterDeserializer: SmartFilterDeserializer,
             serializedBlock: ISerializedBlockV1 | undefined
         ) => {
-            const annotatedGlsl = await import(
-                /* webpackChunkName: "wipeBlock" */ "../blocks/babylon/demo/transitions/wipeBlock.glsl"
+            const module = await import(
+                /* webpackChunkName: "wipeBlock" */ "../blocks/babylon/demo/transitions/wipeBlock.autogen.customBlock.js"
             );
-            const blockDefinition = importCustomBlockDefinition(annotatedGlsl.default);
-            if (blockDefinition.format !== "shaderBlockDefinition") {
-                throw new Error("WipeBlock.glsl must be a serialized ShaderBlockDefinition");
-            }
-            return CustomShaderBlock.Create(smartFilter, serializedBlock?.name || "Wipe", blockDefinition);
+            return module.factory(smartFilter, engine, smartFilterDeserializer, serializedBlock);
         },
         namespace: babylonDemoTransitionsNamespace,
         tooltip: "Transition from one texture to another using a wipe",

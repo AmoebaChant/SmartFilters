@@ -1,16 +1,16 @@
 import * as fs from "fs";
-import { importCustomBlockDefinition } from "../../serialization/importCustomBlockDefinition.js";
 
-const BLOCK_DEFINITION = "@BLOCK_DEFINITION@";
+const ANNOTATED_GLSL = "@BLOCK_DEFINITION@";
 
 const FileTemplate = `import type { ThinEngine } from "@babylonjs/core/Engines/thinEngine.js";
 import {
+    importCustomBlockDefinition,
     CustomShaderBlock,
     type BaseBlock,
     type ISerializedBlockV1,
     type SmartFilter,
     type SmartFilterDeserializer,
-} from "@babylonjs/smart-filters";
+} from "../../../../index.js";
 
 // ************************************************************
 // Note: this file is auto-generated, do not modify it directly
@@ -29,19 +29,24 @@ import {
  * @param serializedBlock - The serialized block to deserialize, if any
  * @returns - A CustomShaderBlock that implements the block described in the annotated GLSL file
  */
-export function wipeBlockFactory(
+export function factory(
     smartFilter: SmartFilter,
     _engine: ThinEngine,
     _smartFilterDeserializer: SmartFilterDeserializer,
     serializedBlock?: ISerializedBlockV1
 ): BaseBlock {
+    const blockDefinition = importCustomBlockDefinition(annotatedGlsl);
     if (blockDefinition.format !== "shaderBlockDefinition") {
         throw new Error("Expected a serialized ShaderBlockDefinition");
     }
-    return CustomShaderBlock.Create(smartFilter, serializedBlock?.name || "Wipe", blockDefinition);
+    return CustomShaderBlock.Create(
+        smartFilter,
+        serializedBlock?.name || blockDefinition.blockType.replace("Block", ""),
+        blockDefinition
+    );
 }
 
-const blockDefinition = JSON.parse('${BLOCK_DEFINITION}');
+const annotatedGlsl = \`${ANNOTATED_GLSL}\`;
 `;
 
 /**
@@ -58,16 +63,12 @@ export function convertShaderIntoCustomBlockFile(fragmentFullPathAndFileName: st
         return;
     }
 
-    // Read the fragment shader
-    const annotatedGlsl = fs.readFileSync(fragmentFullPathAndFileName, "utf8");
-
-    // TODO: solve: can't import this - it's not in the build tools folder which can't take a dependency on the core files since they aren't built yet...
-
-    const blockDefinition = importCustomBlockDefinition(annotatedGlsl);
+    // Read the annotated fragment shader glsl
+    const annotatedFragmentGlsl = fs.readFileSync(fragmentFullPathAndFileName, "utf8");
 
     // Write the shader TS file
     const outputFullPathAndFileName = fragmentFullPathAndFileName.replace(".fragment.glsl", ".autogen.customBlock.ts");
-    const finalContents = FileTemplate.replace(BLOCK_DEFINITION, JSON.stringify(blockDefinition));
+    const finalContents = FileTemplate.replace(ANNOTATED_GLSL, annotatedFragmentGlsl);
 
     fs.writeFileSync(outputFullPathAndFileName, finalContents);
 }

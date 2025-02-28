@@ -1,5 +1,5 @@
 import { ConnectionPointType } from "../connection/connectionPointType.js";
-import { hasGlslHeader, parseFragmentShader } from "../utils/buildTools/shaderConverter.js";
+import { hasGlslHeader, parseFragmentShader } from "../../buildTools/shaderParser.js";
 import type { SerializedBlockDefinition } from "./serializedBlockDefinition.js";
 import type { SerializedShaderBlockDefinition } from "./serializedShaderBlockDefinition.js";
 import type { InputAutoBindV1, SerializedInputConnectionPointV1 } from "./v1/shaderBlockSerialization.types.js";

@@ -7,7 +7,7 @@ import type { RenderTargetWrapper } from "@babylonjs/core/Engines/renderTargetWr
 import { registerFinalRenderCommand } from "../utils/renderTargetUtils.js";
 import type { RuntimeData } from "../connection/connectionPoint";
 import type { Effect } from "@babylonjs/core/Materials/effect";
-import { shaderProgram, uniforms } from "./outputBlock.shader.js";
+import { shaderProgram, uniforms } from "./outputBlock.autogen.shaderProgram.js";
 
 /**
  * The output block of a smart filter.
